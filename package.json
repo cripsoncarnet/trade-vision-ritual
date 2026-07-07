@@ -1,0 +1,16 @@
+{
+  "name": "dex-deal-checker",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Trade Vision — HTTP + JQ + ONNX on Ritual Chain",
+  "scripts": {
+    "fund-wallet": "node scripts/fund-wallet.mjs",
+    "check-token": "node scripts/check-token.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "viem": "^2.54.6"
+  }
+}

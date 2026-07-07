@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trade Vision — On-chain ML Verdict via Ritual</title>
+  <meta name="description" content="Paste any token address and get an instant on-chain ML verdict. HTTP to JQ to ONNX in one Ritual transaction." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Design Tokens ───────────────────────────────────────────── */
+    :root {
+      --bg:        #050507;
+      --bg-raised: #0c0c10;
+      --surface:   #111116;
+      --surface-2: #17171d;
+      --surface-3: #1e1e26;
+
+      --border:    rgba(255,255,255,.06);
+      --border-2:  rgba(255,255,255,.10);
+      --border-3:  rgba(255,255,255,.16);
+
+      --text:      #e8e8ed;
+      --text-2:    #9d9daa;
+      --text-3:    #64647a;
+
+      --accent:    #6c5ce7;
+      --accent-2:  #a78bfa;
+      --accent-bg: rgba(108,92,231,.08);
+
+      --success:   #10b981;
+      --success-bg:rgba(16,185,129,.08);
+      --warning:   #f59e0b;
+      --warning-bg:rgba(245,158,11,.08);
+      --error:     #ef4444;
+      --error-bg:  rgba(239,68,68,.08);
+      --info:      #3b82f6;
+
+      --radius:    14px;
+      --radius-sm: 10px;
+      --radius-xs: 6px;
+
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+      --ease-spring: cubic-bezier(.175,.885,.32,1.275);
+      --ease-out:    cubic-bezier(.16,1,.3,1);
+    }
+
+    /* ─── Reset & Base ─────────────────────────────────────────────── */
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+      font-size: 15px;
+    }
+    ::selection { background: rgba(108,92,231,.35); color: #fff; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-3); border-radius: 100px; }
+
+    /* ─── Subtle Background Texture ───────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: -2;
+      background-image:
+        radial-gradient(rgba(255,255,255,.015) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    /* ─── Nav ──────────────────────────────────────────────────────── */
+    .tv-nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 32px;
+      background: rgba(5,5,7,.82);
+      backdrop-filter: blur(20px) saturate(1.6);
+      border-bottom: 1px solid var(--border);
+    }
+    .tv-nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px; letter-spacing: -.02em; color: var(--text);
+      text-decoration: none;
+    }
+    .tv-nav-brand svg { width: 24px; height: 24px; flex-shrink: 0; }
+    .tv-nav-links {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tv-nav-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 100px;
+      font-size: 12px; font-weight: 500; color: var(--text-2);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: all .2s var(--ease-out);
+      text-decoration: none;
+    }
+    .tv-nav-chip:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-2); }
+    .tv-nav-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success); }
+
+    /* ─── Hero ─────────────────────────────────────────────────────── */
+    .tv-hero {
+      position: relative;
+      padding: 100px 24px 80px;
+      text-align: center;
+      overflow: hidden;
+    }
+    .tv-hero::before {
+      content: '';
+      position: absolute; top: -160px; left: 50%; transform: translateX(-50%);
+      width: 900px; height: 500px;
+      background: radial-gradient(ellipse, rgba(108,92,231,.12) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    .tv-hero::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--border-2) 30%, var(--border-2) 70%, transparent 100%);
+    }
+    .tv-hero > * { position: relative; z-index: 1; }
+    .tv-hero-label {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 16px 6px 8px;
+      border-radius: 100px;
+      background: var(--accent-bg);
+      border: 1px solid rgba(108,92,231,.2);
+      font-size: 12px; font-weight: 600; color: var(--accent-2);
+      margin-bottom: 28px;
+    }
+    .tv-hero-label .ico { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: rgba(108,92,231,.2); }
+    .tv-hero h1 {
+      font-size: clamp(40px,6vw,64px);
+      font-weight: 800; letter-spacing: -.04em;
+      line-height: 1.05;
+      background: linear-gradient(180deg, #fff 20%, var(--text-2) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .tv-hero p {
+      margin-top: 18px;
+      font-size: 17px; line-height: 1.7;
+      color: var(--text-2);
+      max-width: 520px; margin-left: auto; margin-right: auto;
+    }
+    .tv-hero-pipe {
+      display: inline-flex; align-items: center; gap: 8px;
+      margin-top: 32px; padding: 10px 20px;
+      border-radius: var(--radius-xs);
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      font-family: var(--mono); font-size: 13px; color: var(--text-2);
+    }
+    .tv-hero-pipe .arr { color: var(--accent); }
+
+    /* ─── Layout ───────────────────────────────────────────────────── */
+    .tv-page { max-width: 780px; margin: 0 auto; padding: 40px 20px 120px; }
+
+    /* ─── Card ─────────────────────────────────────────────────────── */
+    .tv-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 24px;
+      transition: border-color .25s, box-shadow .25s;
+    }
+    .tv-card:hover { border-color: var(--border-2); }
+    .tv-card-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 20px;
+    }
+    .tv-card-header .ico {
+      display: flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--surface-2); border: 1px solid var(--border);
+    }
+    .tv-card-header .ico svg { width: 16px; height: 16px; color: var(--text-2); }
+    .tv-card-header h2 { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+
+    /* ─── Status Row ───────────────────────────────────────────────── */
+    .tv-status-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    @media(max-width:640px) { .tv-status-row { grid-template-columns: 1fr; } }
+    .tv-status-card {
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      display: flex; flex-direction: column; gap: 14px;
+      transition: border-color .2s;
+    }
+    .tv-status-card:hover { border-color: var(--border-2); }
+    .tv-status-top { display: flex; align-items: center; justify-content: space-between; }
+    .tv-status-label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .tv-status-label svg { width: 16px; height: 16px; opacity: .7; }
+
+    /* ─── Badge ─────────────────────────────────────────────────────── */
+    .tv-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 100px;
+      font-size: 11px; font-weight: 600; letter-spacing: .02em;
+      border: 1px solid transparent;
+    }
+    .tv-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink:0; }
+    .tv-badge-idle { background: var(--surface-2); color: var(--text-3); border-color: var(--border); }
+    .tv-badge-ok   { background: var(--success-bg); color: var(--success); border-color: rgba(16,185,129,.2); }
+    .tv-badge-warn { background: var(--warning-bg); color: var(--warning); border-color: rgba(245,158,11,.2); }
+    .tv-badge-err  { background: var(--error-bg); color: var(--error); border-color: rgba(239,68,68,.2); }
+
+    .tv-mono { font-family: var(--mono); font-size: 13px; color: var(--text-2); word-break: break-all; line-height: 1.5; }
+
+    /* ─── Buttons ───────────────────────────────────────────────────── */
+    .tv-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 10px 18px; border-radius: var(--radius-xs);
+      font-family: var(--sans); font-size: 13px; font-weight: 600;
+      cursor: pointer; border: none; outline: none;
+      transition: all .18s var(--ease-out);
+      position: relative; overflow: hidden;
+    }
+    .tv-btn:disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
+    .tv-btn:active:not(:disabled) { transform: scale(.97); }
+
+    .tv-btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.12);
+    }
+    .tv-btn-primary:hover:not(:disabled) { background: #7c6ef0; box-shadow: 0 4px 20px rgba(108,92,231,.3), inset 0 1px 0 rgba(255,255,255,.12); transform: translateY(-1px); }
+
+    .tv-btn-block { width: 100%; padding: 14px 24px; font-size: 15px; border-radius: var(--radius-sm); }
+
+    .tv-btn-ghost {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border-2);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .tv-btn-ghost:hover:not(:disabled) { background: var(--surface-3); border-color: var(--border-3); }
+
+    .tv-btn-sm { padding: 7px 14px; font-size: 12px; }
+
+    .tv-btn-accent {
+      background: var(--success-bg); color: var(--success); border: 1px solid rgba(16,185,129,.2);
+    }
+    .tv-btn-accent:hover:not(:disabled) { background: rgba(16,185,129,.14); }
+
+    .tv-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    .tv-btn-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ─── Loading Spinner ──────────────────────────────────────────── */
+    .tv-spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.2); border-top-color: #fff;
+      border-radius: 50%; animation: tv-spin .6s linear infinite;
+    }
+    @keyframes tv-spin { to { transform: rotate(360deg); } }
+
+    /* ─── Form Elements ────────────────────────────────────────────── */
+    .tv-form-row { display: grid; grid-template-columns: 160px 1fr; gap: 16px; }
+    @media(max-width:640px) { .tv-form-row { grid-template-columns: 1fr; } }
+
+    .tv-input, .tv-select {
+      width: 100%; padding: 12px 14px;
+      background: var(--bg); border: 1px solid var(--border-2);
+      border-radius: var(--radius-xs);
+      font-family: var(--sans); font-size: 14px; color: var(--text);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      -webkit-appearance: none;
+    }
+    .tv-input::placeholder { color: var(--text-3); }
+    .tv-input:focus, .tv-select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108,92,231,.12);
+    }
+    .tv-input.valid { border-color: var(--success); }
+    .tv-input.error { border-color: var(--error); }
+    .tv-input.mono-input { font-family: var(--mono); font-size: 13px; }
+    .tv-select {
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364647a'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+    .tv-hint { font-size: 12px; color: var(--text-3); margin-top: 6px; font-weight: 500; }
+    .tv-hint.ok { color: var(--success); }
+    .tv-hint.err { color: var(--error); }
+
+    /* ─── Log Panel ────────────────────────────────────────────────── */
+    .tv-log {
+      margin-top: 20px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      font-family: var(--mono); font-size: 12px; line-height: 1.7;
+      max-height: 200px; overflow-y: auto;
+      display: none;
+    }
+    .tv-log div { margin-bottom: 2px; color: var(--text-3); }
+    .tv-log .log-ok { color: var(--success); }
+    .tv-log .log-err { color: var(--error); }
+    .tv-log .log-info { color: var(--info); }
+
+    /* ─── Verdict Card ─────────────────────────────────────────────── */
+    .tv-verdict {
+      border-radius: var(--radius); padding: 32px; margin-bottom: 24px;
+      position: relative; overflow: hidden;
+      background: var(--surface); border: 1px solid var(--border);
+    }
+    .tv-verdict::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(600px circle at 0% 0%, var(--vglow), transparent 50%);
+      opacity: .12;
+    }
+    .tv-verdict.risky  { --vglow: var(--error);   border-color: rgba(239,68,68,.25); }
+    .tv-verdict.fair   { --vglow: var(--warning);  border-color: rgba(245,158,11,.25); }
+    .tv-verdict.momentum { --vglow: var(--success); border-color: rgba(16,185,129,.25); }
+    .tv-verdict > * { position: relative; z-index: 1; }
+
+    .tv-verdict-head { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 20px; }
+    .tv-verdict-ico {
+      width: 52px; height: 52px; flex-shrink: 0;
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      font-size: 22px; background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.08);
+    }
+    .tv-verdict-title { font-size: 28px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; }
+    .risky .tv-verdict-title  { color: var(--error); }
+    .fair .tv-verdict-title   { color: var(--warning); }
+    .momentum .tv-verdict-title { color: var(--success); }
+    .tv-verdict-sub { font-size: 13px; color: var(--text-2); font-weight: 500; margin-top: 4px; }
+    .tv-verdict-explain {
+      font-size: 14px; line-height: 1.65; color: var(--text);
+      background: rgba(0,0,0,.3); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    /* Score Gauge */
+    .tv-score-section { margin-bottom: 28px; }
+    .tv-score-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); margin-bottom: 14px; }
+    .tv-gauge-wrap { display: flex; align-items: center; gap: 24px; }
+    .tv-gauge-col { flex: 1; }
+    .tv-gauge-bar { height: 6px; border-radius: 100px; background: var(--surface-3); position: relative; }
+    .tv-gauge-fill {
+      position: absolute; top: 0; left: 0; height: 100%; border-radius: 100px;
+      transition: width 1.2s var(--ease-out);
+    }
+    .risky .tv-gauge-fill  { background: linear-gradient(90deg, var(--error), #f97316); }
+    .fair .tv-gauge-fill   { background: linear-gradient(90deg, var(--warning), #eab308); }
+    .momentum .tv-gauge-fill { background: linear-gradient(90deg, var(--success), #2dd4bf); }
+    .tv-gauge-marker {
+      position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid var(--surface);
+      transform: translate(-50%,-50%);
+      transition: left 1.2s var(--ease-out);
+    }
+    .risky .tv-gauge-marker  { background: var(--error); box-shadow: 0 0 12px rgba(239,68,68,.5); }
+    .fair .tv-gauge-marker   { background: var(--warning); box-shadow: 0 0 12px rgba(245,158,11,.5); }
+    .momentum .tv-gauge-marker { background: var(--success); box-shadow: 0 0 12px rgba(16,185,129,.5); }
+    .tv-gauge-labels { display: flex; justify-content: space-between; font-size: 10px; font-weight: 600; color: var(--text-3); margin-top: 8px; text-transform: uppercase; letter-spacing: .04em; }
+    .tv-score-value {
+      font-size: 44px; font-weight: 800; font-family: var(--mono);
+      letter-spacing: -.04em; flex-shrink: 0; line-height: 1;
+    }
+    .risky .tv-score-value  { color: var(--error); }
+    .fair .tv-score-value   { color: var(--warning); }
+    .momentum .tv-score-value { color: var(--success); }
+
+    /* Stats Grid */
+    .tv-stats { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; margin-bottom: 24px; }
+    @media(max-width:500px) { .tv-stats { grid-template-columns: 1fr; } }
+    .tv-stat {
+      background: rgba(0,0,0,.25); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 16px;
+    }
+    .tv-stat-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .tv-stat-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .tv-stat-name { font-size: 11px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .tv-stat-val { font-size: 22px; font-weight: 700; font-family: var(--mono); letter-spacing: -.02em; }
+    .tv-stat-note { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+    .tv-stat-bar { height: 3px; background: var(--surface-3); border-radius: 100px; margin-top: 10px; overflow: hidden; }
+    .tv-stat-fill { height: 100%; border-radius: 100px; transition: width 1s ease; }
+
+    /* Advice */
+    .tv-advice {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px; border-radius: var(--radius-sm);
+      font-size: 13px; line-height: 1.6;
+    }
+    .tv-advice.risky  { background: var(--error-bg); border: 1px solid rgba(239,68,68,.15); color: #fca5a5; }
+    .tv-advice.fair   { background: var(--warning-bg); border: 1px solid rgba(245,158,11,.15); color: #fde68a; }
+    .tv-advice.momentum { background: var(--success-bg); border: 1px solid rgba(16,185,129,.15); color: #6ee7b7; }
+    .tv-advice svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
+
+    /* TX Proof */
+    .tv-proof {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+      margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .tv-proof-label { color: var(--text-3); }
+    .tv-proof-link {
+      font-family: var(--mono); font-size: 12px; color: var(--accent-2);
+      text-decoration: none; transition: color .15s;
+    }
+    .tv-proof-link:hover { color: #fff; }
+
+    /* ─── Pipeline Trace (Collapsed) ──────────────────────────────── */
+    .tv-collapse {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      margin-bottom: 24px; overflow: hidden;
+    }
+    .tv-collapse-toggle { display: none; }
+    .tv-collapse-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 24px; cursor: pointer; user-select: none;
+      transition: background .15s;
+    }
+    .tv-collapse-head:hover { background: var(--surface-2); }
+    .tv-collapse-head .left { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; }
+    .tv-collapse-head .left svg { width: 18px; height: 18px; color: var(--text-2); }
+    .tv-collapse-head .right { font-size: 11px; font-weight: 700; color: var(--success); text-transform: uppercase; letter-spacing: .06em; }
+    .tv-collapse-head .chevron {
+      width: 16px; height: 16px; color: var(--text-3);
+      transition: transform .25s var(--ease-out); margin-left: 8px;
+    }
+    .tv-collapse-toggle:checked ~ .tv-collapse-head .chevron { transform: rotate(180deg); }
+    .tv-collapse-body { max-height: 0; overflow: hidden; transition: max-height .35s var(--ease-out); }
+    .tv-collapse-toggle:checked ~ .tv-collapse-body { max-height: 2000px; }
+    .tv-collapse-inner { padding: 0 24px 24px; }
+    .tv-collapse-inner::before { content: ''; display: block; height: 1px; background: var(--border); margin-bottom: 20px; }
+
+    /* Pipeline Steps */
+    .tv-pipe-step {
+      display: flex; gap: 16px; padding: 16px;
+      background: var(--bg-raised); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); margin-bottom: 12px;
+    }
+    .tv-pipe-badge {
+      flex-shrink: 0; width: 36px; height: 36px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; background: var(--surface-2); border: 1px solid var(--border);
+    }
+    .tv-pipe-label { font-size: 13px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .tv-pipe-addr { font-family: var(--mono); font-size: 10px; color: var(--text-3); background: var(--surface-3); padding: 2px 6px; border-radius: 4px; }
+    .tv-pipe-desc { font-size: 12px; color: var(--text-3); margin-bottom: 8px; }
+    .tv-pipe-code {
+      font-family: var(--mono); font-size: 11px; color: var(--text-2);
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-xs); padding: 10px 12px;
+      word-break: break-all; margin-bottom: 6px;
+    }
+    .tv-jq-row {
+      display: flex; align-items: center; gap: 10px; font-size: 12px;
+      background: var(--bg); padding: 8px 12px; border-radius: var(--radius-xs);
+      border: 1px solid var(--border); margin-bottom: 6px;
+    }
+    .tv-jq-query { font-family: var(--mono); color: var(--text-3); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tv-jq-val { font-family: var(--mono); font-weight: 600; color: var(--text); min-width: 60px; text-align: right; }
+
+    /* ─── Info Cards ────────────────────────────────────────────────── */
+    .tv-info-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+    @media(max-width:640px) { .tv-info-grid { grid-template-columns: 1fr; } }
+    .tv-info-item {
+      background: var(--bg-raised); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 24px 20px;
+      transition: border-color .2s, transform .2s;
+    }
+    .tv-info-item:hover { border-color: var(--border-2); transform: translateY(-2px); }
+    .tv-info-ico {
+      width: 38px; height: 38px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px; font-size: 18px;
+      border: 1px solid var(--border);
+    }
+    .tv-info-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .tv-info-desc { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+
+    /* ─── Footer ───────────────────────────────────────────────────── */
+    .tv-footer {
+      margin-top: 48px; padding: 24px;
+      text-align: center; font-size: 12px; color: var(--text-3);
+      border-top: 1px solid var(--border);
+    }
+    .tv-footer a { color: var(--accent-2); text-decoration: none; }
+    .tv-footer a:hover { text-decoration: underline; }
+
+    /* ─── Animations ───────────────────────────────────────────────── */
+    @keyframes tv-fadeIn { from { opacity:0; transform: translateY(16px); filter: blur(6px); } to { opacity:1; transform: translateY(0); filter: blur(0); } }
+    .tv-animate { animation: tv-fadeIn .5s var(--ease-out) forwards; }
+  </style>
+</head>
+<body>
+
+<!-- ─── Navigation ─────────────────────────────────────────────────── -->
+<nav class="tv-nav">
+  <a href="#" class="tv-nav-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    Trade Vision
+  </a>
+  <div class="tv-nav-links">
+    <a href="https://docs.ritual.net" target="_blank" class="tv-nav-chip">Docs</a>
+    <a href="https://explorer.ritualfoundation.org" target="_blank" class="tv-nav-chip"><span class="dot"></span> Ritual Chain</a>
+  </div>
+</nav>
+
+<!-- ─── Hero ────────────────────────────────────────────────────────── -->
+<section class="tv-hero">
+  <div class="tv-hero-label">
+    <span class="ico">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    </span>
+    Powered by Ritual &middot; On-chain ML
+  </div>
+  <h1>Trade Vision</h1>
+  <p>Real-time on-chain verdict for any token. One transaction, three precompiles, verifiable output.</p>
+  <div class="tv-hero-pipe">
+    <span>HTTP</span> <span class="arr">&rarr;</span>
+    <span>JQ</span> <span class="arr">&rarr;</span>
+    <span>ONNX</span>
+  </div>
+</section>
+
+<!-- ─── Main Content ───────────────────────────────────────────────── -->
+<div class="tv-page">
+
+  <!-- Status Row -->
+  <div class="tv-status-row">
+    <div class="tv-status-card">
+      <div class="tv-status-top">
+        <div class="tv-status-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Wallet
+        </div>
+        <span class="tv-badge tv-badge-idle" id="walletPill"><span class="dot"></span><span id="walletPillText">Disconnected</span></span>
+      </div>
+      <div class="tv-mono" id="walletAddr" style="color:var(--text-3)">Not connected</div>
+      <div id="walletBal" style="font-size:12px;color:var(--text-3)"></div>
+      <div class="tv-btn-actions">
+        <button class="tv-btn tv-btn-ghost tv-btn-sm" id="btnConnect">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Connect MetaMask
+        </button>
+        <button class="tv-btn tv-btn-accent tv-btn-sm" id="btnDeposit" style="display:none;">Deposit 0.1</button>
+        <button class="tv-btn tv-btn-ghost tv-btn-sm" id="btnWithdraw" style="display:none;">Withdraw</button>
+      </div>
+    </div>
+    <div class="tv-status-card">
+      <div class="tv-status-top">
+        <div class="tv-status-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m11-7h-6m-6 0H1m16.5-6.5-4.24 4.24m-4.52 4.52L4.5 17.5m13-1-4.24-4.24m-4.52-4.52L4.5 6.5"/></svg>
+          TEE Executor
+        </div>
+        <span class="tv-badge tv-badge-idle" id="executorPill"><span class="dot"></span><span id="executorPillText">Not probed</span></span>
+      </div>
+      <div class="tv-mono" id="executorAddr" style="color:var(--text-3)">Probe to find a live node</div>
+      <div class="tv-btn-actions">
+        <button class="tv-btn tv-btn-ghost tv-btn-sm" id="btnProbeExecutor">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Probe Executor
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Token Analysis Card -->
+  <div class="tv-card">
+    <div class="tv-card-header">
+      <div class="ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-6.05-6.05m0 0a7 7 0 1 0-9.9-9.9 7 7 0 0 0 9.9 9.9Z"/></svg>
+      </div>
+      <h2>Select Token to Analyse</h2>
+    </div>
+    <div class="tv-form-row">
+      <div>
+        <select class="tv-select" id="networkSelect"></select>
+        <div class="tv-hint">DexPaprika network</div>
+      </div>
+      <div>
+        <input type="text" id="tokenInput" placeholder="0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" class="tv-input mono-input" autocomplete="off" spellcheck="false" />
+        <div class="tv-hint" id="tokenHint">Select a network first</div>
+      </div>
+    </div>
+    <button class="tv-btn tv-btn-primary tv-btn-block" id="btnCheck" disabled style="margin-top:20px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      Run On-chain Analysis
+    </button>
+    <div id="logPanel" class="tv-log"></div>
+  </div>
+
+  <!-- Verdict (injected by JS) -->
+  <div id="verdictSection" style="display:none;"></div>
+
+  <!-- Pipeline Trace (collapsible) -->
+  <div id="pipelineTrace" style="display:none;">
+    <div class="tv-collapse">
+      <input type="checkbox" class="tv-collapse-toggle" id="traceToggle" />
+      <label class="tv-collapse-head" for="traceToggle">
+        <span class="left">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+          On-chain Pipeline Trace
+        </span>
+        <span style="display:flex;align-items:center;">
+          <span class="right">&#10003; 3 precompiles</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </span>
+      </label>
+      <div class="tv-collapse-body">
+        <div class="tv-collapse-inner">
+          <div class="tv-pipe-step">
+            <div class="tv-pipe-badge">&#127760;</div>
+            <div style="flex:1;min-width:0;">
+              <div class="tv-pipe-label">HTTP Fetch <span class="tv-pipe-addr">0x0801</span></div>
+              <div class="tv-pipe-desc">DexPaprika public API &middot; GET &middot; inside TEE</div>
+              <div class="tv-pipe-code" id="traceUrl"></div>
+              <div style="font-size:12px;" id="traceHttpStatus"></div>
+            </div>
+          </div>
+          <div class="tv-pipe-step">
+            <div class="tv-pipe-badge">&#128296;</div>
+            <div style="flex:1;min-width:0;">
+              <div class="tv-pipe-label">JQ Feature Extraction <span class="tv-pipe-addr">0x0803</span></div>
+              <div class="tv-pipe-desc">4 jq expressions against JSON response</div>
+              <div id="traceJQ"></div>
+            </div>
+          </div>
+          <div class="tv-pipe-step">
+            <div class="tv-pipe-badge">&#129302;</div>
+            <div style="flex:1;min-width:0;">
+              <div class="tv-pipe-label">ONNX Linear Classifier <span class="tv-pipe-addr">0x0800</span></div>
+              <div class="tv-pipe-desc">Gemm op &middot; opset 17 &middot; FLOAT32 [1&times;4] &rarr; [1&times;1]</div>
+              <div class="tv-pipe-code" id="traceModel"></div>
+              <div class="tv-pipe-code" id="traceCalc" style="background:var(--surface-2);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Verdict Explainer -->
+  <div class="tv-card" style="margin-top:12px;">
+    <div class="tv-card-header">
+      <div class="ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <h2>What do the verdicts mean?</h2>
+    </div>
+    <div class="tv-info-grid">
+      <div class="tv-info-item">
+        <div class="tv-info-ico" style="background:var(--error-bg);border-color:rgba(239,68,68,.15);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="tv-info-title" style="color:var(--error);">Risky</div>
+        <div class="tv-info-desc">Very thin on-chain depth or price crashed significantly. High slippage risk.</div>
+      </div>
+      <div class="tv-info-item">
+        <div class="tv-info-ico" style="background:var(--warning-bg);border-color:rgba(245,158,11,.15);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="tv-info-title" style="color:var(--warning);">Fair</div>
+        <div class="tv-info-desc">Healthy depth and stable price. Trading at fair market value.</div>
+      </div>
+      <div class="tv-info-item">
+        <div class="tv-info-ico" style="background:var(--success-bg);border-color:rgba(16,185,129,.15);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        </div>
+        <div class="tv-info-title" style="color:var(--success);">Momentum</div>
+        <div class="tv-info-desc">Strong volume and price surge. Bullish momentum detected.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="tv-footer">
+    Trade Vision &middot; Built on <a href="https://ritual.net" target="_blank">Ritual</a> &middot; Verified by ONNX inference on-chain
+  </footer>
+
+</div>
+
+<!-- ─── Scripts ─────────────────────────────────────────────────────── -->
+<script src="viem.umd.js"></script>
+<script src="build-request.js"></script>
+<script src="executor-probe.js"></script>
+<script>
+var RITUAL_CHAIN_ID    = 1979;
+var RITUAL_RPC_URL     = 'https://rpc.ritualfoundation.org';
+var RITUAL_EXPLORER    = 'https://explorer.ritualfoundation.org';
+var RITUAL_WALLET_ADDR = '0x532F0dF0896F353d8C3DD8cc134e8129DA2a3948';
+var CONTRACT_ADDRESS   = (new URLSearchParams(window.location.search)).get('contract') || '0x5c74885e7a39221363D43202fF3cC4A65F3FE372';
+var TEST_ONNX_MODEL_ID = 'hf/cripson01we/dex-deal-score/dex-deal-score.onnx@0f7c39e7343ff247f50759ff439d885c76303f76';
+
+var CHECKER_ABI = [
+  {name:'checkToken',type:'function',stateMutability:'nonpayable',
+   inputs:[{name:'httpInput',type:'bytes'},{name:'jqQueries',type:'string[]'},{name:'onnxModelId',type:'bytes'},{name:'network',type:'string'},{name:'tokenAddress',type:'string'}],
+   outputs:[{name:'verdict',type:'uint8'},{name:'features',type:'int256[]'}]},
+  {name:'DealChecked',type:'event',
+   inputs:[{name:'caller',type:'address',indexed:true},{name:'network',type:'string',indexed:false},{name:'tokenAddress',type:'string',indexed:false},{name:'features',type:'int256[]',indexed:false},{name:'verdict',type:'uint8',indexed:false}]},
+];
+var RW_ABI = [
+  {name:'balanceOf',type:'function',stateMutability:'view',inputs:[{name:'user',type:'address'}],outputs:[{type:'uint256'}]},
+  {name:'lockUntil',type:'function',stateMutability:'view',inputs:[{name:'user',type:'address'}],outputs:[{type:'uint256'}]},
+  {name:'deposit',type:'function',stateMutability:'payable',inputs:[{name:'lockDuration',type:'uint256'}],outputs:[]},
+  {name:'withdraw',type:'function',stateMutability:'nonpayable',inputs:[{name:'amount',type:'uint256'}],outputs:[]}
+];
+
+var state = {account:null,publicClient:null,walletClient:null,executor:null,networkId:'',tokenAddress:'',checking:false};
+function $(id){return document.getElementById(id);}
+function log(msg,type){
+  var p=$('logPanel');
+  p.style.display='block';
+  var d=document.createElement('div');
+  d.className=type?'log-'+type:'';
+  d.textContent='['+new Date().toLocaleTimeString()+'] '+msg;
+  p.appendChild(d);
+  p.scrollTop=p.scrollHeight;
+}
+function fmtAddr(a,n){n=n||6;if(!a||a.length<12)return a;return a.slice(0,n+2)+'...'+a.slice(-4);}
+function fmtUSD(n){if(n>=1e9)return '$'+(n/1e9).toFixed(2)+'B';if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return '$'+(n/1e3).toFixed(1)+'K';return '$'+n.toFixed(0);}
+function buildChain(){return viem.defineChain({id:1979,name:'Ritual',nativeCurrency:{name:'RITUAL',symbol:'RITUAL',decimals:18},rpcUrls:{default:{http:[RITUAL_RPC_URL]}},blockExplorers:{default:{name:'Ritual Explorer',url:RITUAL_EXPLORER}}});}
+function setOk(){$('btnCheck').disabled=!(state.account&&state.executor&&state.networkId&&state.tokenAddress&&!state.checking&&CONTRACT_ADDRESS);}
+
+document.getElementById('btnConnect').addEventListener('click',function(){
+  if(!window.ethereum){alert('MetaMask not found. Install from metamask.io');return;}
+  window.ethereum.request({method:'eth_requestAccounts'}).then(function(accounts){
+    return window.ethereum.request({method:'eth_chainId'}).then(function(chainId){
+      var switchP = Promise.resolve();
+      if(parseInt(chainId,16)!==1979){
+        switchP=window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x7BB'}]}).catch(function(e){
+          if(e.code===4902)return window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:'0x7BB',chainName:'Ritual',nativeCurrency:{name:'RITUAL',symbol:'RITUAL',decimals:18},rpcUrls:[RITUAL_RPC_URL],blockExplorerUrls:[RITUAL_EXPLORER]}]});
+        });
+      }
+      return switchP.then(function(){
+        state.account=accounts[0];
+        var chain=buildChain();
+        state.publicClient=viem.createPublicClient({chain:chain,transport:viem.http(RITUAL_RPC_URL)});
+        state.walletClient=viem.createWalletClient({account:state.account,chain:chain,transport:viem.custom(window.ethereum)});
+
+        $('walletPill').className='tv-badge tv-badge-ok';$('walletPillText').textContent='Connected';
+        $('walletAddr').textContent=state.account;$('walletAddr').style.color='var(--text)';
+        $('btnConnect').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Reconnect';
+        updateWalBal();
+        probeExecutor();
+        setOk();
+      });
+    });
+  }).catch(function(e){log('Wallet: '+e.message,'err');});
+});
+
+$('btnDeposit').addEventListener('click', function() {
+  if(!state.walletClient) return;
+  state.walletClient.writeContract({
+    address: RITUAL_WALLET_ADDR, abi: RW_ABI, functionName: 'deposit',
+    args: [10000n], value: viem.parseEther('0.1')
+  }).then(function(hash){
+    log('Deposit tx sent: '+hash);
+    $('walletBal').innerHTML += '<br/><span id="txWait" style="color:var(--warning)">Confirming... <a href="'+RITUAL_EXPLORER+'/tx/'+hash+'" target="_blank" style="color:var(--accent-2)">View Tx</a></span>';
+    return state.publicClient.waitForTransactionReceipt({hash: hash});
+  }).then(function(receipt){
+    var tw = $('txWait'); if(tw) tw.remove();
+    log('Deposit confirmed! Block: ' + receipt.blockNumber);
+    updateWalBal();
+  }).catch(function(e){log('Deposit error: '+e.message,'err');});
+});
+
+$('btnWithdraw').addEventListener('click', function() {
+  if(!state.walletClient || !state.account || !state.publicClient) return;
+  state.publicClient.readContract({
+    address: RITUAL_WALLET_ADDR, abi: RW_ABI, functionName: 'balanceOf', args: [state.account]
+  }).then(function(bal){
+    if(bal === 0n) { log('No unlocked balance to withdraw', 'err'); return; }
+    return state.walletClient.writeContract({
+      address: RITUAL_WALLET_ADDR, abi: RW_ABI, functionName: 'withdraw', args: [bal]
+    });
+  }).then(function(hash){
+    if(!hash) return;
+    log('Withdraw tx sent: '+hash);
+    $('walletBal').innerHTML += '<br/><span id="txWait" style="color:var(--warning)">Confirming... <a href="'+RITUAL_EXPLORER+'/tx/'+hash+'" target="_blank" style="color:var(--accent-2)">View Tx</a></span>';
+    return state.publicClient.waitForTransactionReceipt({hash: hash});
+  }).then(function(receipt){
+    if(!receipt) return;
+    var tw = $('txWait'); if(tw) tw.remove();
+    log('Withdraw confirmed! Block: ' + receipt.blockNumber);
+    updateWalBal();
+  }).catch(function(e){log('Withdraw error: '+e.message,'err');});
+});
+
+function updateWalBal(){
+  if(!state.account||!state.publicClient)return;
+  Promise.all([
+    state.publicClient.readContract({address:RITUAL_WALLET_ADDR,abi:RW_ABI,functionName:'balanceOf',args:[state.account]}),
+    state.publicClient.readContract({address:RITUAL_WALLET_ADDR,abi:RW_ABI,functionName:'lockUntil',args:[state.account]}),
+    state.publicClient.getBlockNumber()
+  ]).then(function(r){
+    var bal=(Number(r[0])/1e18).toFixed(4);
+    var isLocked=r[1]>r[2];
+    var lkText=isLocked?'Locked '+(r[1]-r[2]).toLocaleString()+' blocks':'Unlocked';
+    $('walletBal').innerHTML='<span>'+bal+' RITUAL  \u00b7  '+lkText+'</span>';
+
+    $('btnDeposit').style.display='inline-flex';
+    $('btnWithdraw').style.display='inline-flex';
+    $('btnWithdraw').disabled = isLocked || r[0]===0n;
+  }).catch(function(){});
+}
+
+(function(){
+  var sel=$('networkSelect');
+  DexDealChecker.NETWORK_OPTIONS.forEach(function(n){var o=document.createElement('option');o.value=n.networkId;o.textContent=n.label;sel.appendChild(o);});
+  state.networkId=DexDealChecker.NETWORK_OPTIONS[0].networkId;
+  updateHint();
+})();
+
+$('networkSelect').addEventListener('change',function(e){state.networkId=e.target.value;state.tokenAddress='';$('tokenInput').value='';updateHint();setOk();});
+function getPh(id){if(id==='solana')return 'So11111111111111111111111111111111111111112';if(id==='tron')return 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';return '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';}
+function updateHint(){$('tokenInput').placeholder=getPh(state.networkId);$('tokenHint').textContent='Paste token contract address';$('tokenHint').className='tv-hint';}
+
+$('tokenInput').addEventListener('input',function(e){
+  var val=e.target.value.trim();
+  var r=DexDealChecker.validateAddress(val,state.networkId);
+  if(!val){
+    $('tokenInput').className='tv-input mono-input';
+    $('tokenHint').className='tv-hint';
+    $('tokenHint').textContent='Paste token contract address';
+  }
+  else if(r.valid){
+    $('tokenInput').className='tv-input mono-input valid';
+    $('tokenHint').className='tv-hint ok';
+    $('tokenHint').textContent='\u2713 Valid address';
+    state.tokenAddress=val;
+  }
+  else{
+    $('tokenInput').className='tv-input mono-input error';
+    $('tokenHint').className='tv-hint err';
+    $('tokenHint').textContent=r.error;
+    state.tokenAddress='';
+  }
+  setOk();
+});
+
+$('btnProbeExecutor').addEventListener('click', function(){ probeExecutor(); });
+
+function probeExecutor(){
+  if(!state.publicClient){log('Connect wallet first','err');return;}
+  $('btnProbeExecutor').disabled=true;
+  $('executorPill').className='tv-badge tv-badge-warn';$('executorPillText').textContent='Probing...';
+  $('executorAddr').textContent='Querying TEEServiceRegistry...';
+  ExecutorProbe.pickLiveExecutor(state.publicClient).then(function(r){
+    state.executor={teeAddress:r.teeAddress};
+    $('executorAddr').textContent=r.teeAddress;$('executorAddr').style.color='var(--text)';
+    $('executorPill').className='tv-badge tv-badge-ok';$('executorPillText').textContent='Live';
+    log('Executor: '+r.teeAddress,'ok');setOk();
+  }).catch(function(e){
+    state.executor=null;$('executorAddr').textContent='None found';
+    $('executorPill').className='tv-badge tv-badge-err';$('executorPillText').textContent='Dead';
+    log('Probe failed: '+e.message,'err');setOk();
+  }).finally(function(){$('btnProbeExecutor').disabled=false;});
+}
+
+$('btnCheck').addEventListener('click',function(){
+  if(state.checking)return;
+  state.checking=true;setOk();
+  var network=state.networkId,tokenAddress=state.tokenAddress,executor=state.executor.teeAddress;
+  $('verdictSection').style.display='none';$('pipelineTrace').style.display='none';
+  $('logPanel').innerHTML='';$('logPanel').style.display='block';
+  $('btnCheck').innerHTML='<span class="tv-spinner"></span> Submitting...';
+  log('Network: '+network+'  Token: '+fmtAddr(tokenAddress,12),'info');
+  log('Executor: '+fmtAddr(executor),'info');
+
+  var httpInput=DexDealChecker.buildDexPaprikaHttpInput(network,tokenAddress,executor);
+  var onnxModelId=viem.toHex(new TextEncoder().encode(TEST_ONNX_MODEL_ID));
+  log('Encoding calldata...','info');
+  var callData=viem.encodeFunctionData({abi:CHECKER_ABI,functionName:'checkToken',args:[httpInput,DexDealChecker.DEFAULT_JQ_QUERIES,onnxModelId,network,tokenAddress]});
+  log('Sending transaction...','info');
+  $('btnCheck').innerHTML='<span class="tv-spinner"></span> Waiting for wallet...';
+
+  state.walletClient.sendTransaction({to:CONTRACT_ADDRESS,data:callData,maxFeePerGas:30000000000n,maxPriorityFeePerGas:2000000000n,gas:3000000n})
+  .then(function(txHash){
+    log('Tx: '+txHash,'ok');
+    log('Waiting for settlement (5-60s)...','info');
+    $('btnCheck').innerHTML='<span class="tv-spinner"></span> Settling on-chain...';
+    return state.publicClient.waitForTransactionReceipt({hash:txHash,timeout:180000}).then(function(receipt){
+      log('Block '+receipt.blockNumber+'  Status: '+receipt.status,receipt.status==='success'?'ok':'err');
+      if(receipt.status==='reverted'){log('Reverted -- try WETH or wait 30s for model to cache','err');resetBtn();return;}
+      var verdict=null,features=null;
+      for(var i=0;i<receipt.logs.length;i++){try{var d=viem.decodeEventLog({abi:CHECKER_ABI,eventName:'DealChecked',data:receipt.logs[i].data,topics:receipt.logs[i].topics});verdict=d.args.verdict;features=d.args.features;break;}catch(x){}}
+      if(verdict===null){log('DealChecked event not found','err');resetBtn();return;}
+      showVerdict(verdict,features,txHash,receipt.blockNumber,network,tokenAddress);
+      log('Verdict: '+DexDealChecker.VERDICT_EMOJIS[verdict]+' '+DexDealChecker.VERDICT_LABELS[verdict],'ok');
+    });
+  }).catch(function(e){log('Error: '+e.message,'err');console.error(e);})
+  .finally(function(){resetBtn();updateWalBal();});
+});
+
+function resetBtn(){
+  state.checking=false;
+  $('btnCheck').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Run On-chain Analysis';
+  setOk();
+}
+
+var VD=[
+  {key:'risky',css:'risky',
+   emoji:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+   title:'RISKY',sub:'High slippage &middot; thin market',
+   explain:'This token has very low on-chain liquidity or its price has crashed significantly. Trading carries high slippage risk and potential for further losses. The ONNX model scored it below 0.5.',
+   advice:'Avoid trading this token right now. Thin liquidity means even small buy or sell orders will move the price substantially. Wait for on-chain depth to recover.'},
+  {key:'fair',css:'fair',
+   emoji:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+   title:'FAIR',sub:'Healthy depth &middot; stable price',
+   explain:'This token has solid on-chain liquidity and its price is moving normally. It is trading close to fair market value with no obvious underpricing or overpricing signal. Score: 0.5 to 1.5.',
+   advice:'The market is pricing this token fairly. You can enter at market but there is no particular discount available. Watch for catalysts that might shift sentiment.'},
+  {key:'momentum',css:'momentum',
+   emoji:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>',
+   title:'MOMENTUM',sub:'Strong volume + price surge',
+   explain:'The model detected strong on-chain volume and liquidity paired with a surging price. The ONNX classifier is trained to reward positive price action and high activity. Score above 1.5.',
+   advice:'On-chain depth is solid and the token has strong upward momentum. This indicates heavy buyer interest and positive market sentiment. Do your own research before taking any position.'},
+];
+
+var COLORS={risky:'var(--error)',fair:'var(--warning)',momentum:'var(--success)'};
+
+var FM=[
+  {name:'On-chain Liquidity',color:'#6c5ce7',
+   fmt:function(v){return fmtUSD(v*1000);},
+   note:function(v){return v<100?'Very thin':v<10000?'Low':v<100000?'Moderate':'Deep';},
+   scale:function(v){return Math.min(Math.abs(v)/500000,1);}},
+  {name:'24h Volume',color:'#3b82f6',
+   fmt:function(v){return fmtUSD(v*1000);},
+   note:function(v){return v<50?'Quiet':v<5000?'Low':v<50000?'Active':'High volume';},
+   scale:function(v){return Math.min(Math.abs(v)/200000,1);}},
+  {name:'Price Change 24h',
+   colorFn:function(v){return v>=0?'var(--success)':'var(--error)';},
+   fmt:function(v){return (v>=0?'+':'')+(v/100).toFixed(2)+'%';},
+   note:function(v){return v<-300?'Price crash':v<-50?'Large drop':v<0?'Dip':v===0?'Flat':'Rising';},
+   scale:function(v){return Math.min(Math.abs(v)/300+0.2,1);}},
+  {name:'24h Tx Count',color:'#f59e0b',
+   fmt:function(v){return v.toLocaleString();},
+   note:function(v){return v<50?'Dormant':v<5000?'Quiet':v<50000?'Active':'Very active';},
+   scale:function(v){return Math.min(Math.abs(v)/300000,1);}},
+];
+
+function showVerdict(verdict,features,txHash,blockNum,network,tokenAddress){
+  var vIdx=Math.max(0,Math.min(2,Number(verdict)));
+  var vd=VD[vIdx];
+  var f=features?features.map(Number):[0,0,0,0];
+  var score=f[0]*4e-6+f[1]*4e-6+f[2]*1e-3;
+  var scorePct=Math.min(Math.max(score/4,0),1)*100;
+  var explorerUrl=RITUAL_EXPLORER+'/tx/'+txHash;
+  var vc=COLORS[vd.key];
+
+  var statsHtml='';
+  for(var i=0;i<f.length;i++){
+    var m=FM[i];var val=f[i];
+    var color=m.colorFn?m.colorFn(val):(m.color||'#6c5ce7');
+    var pct=m.scale(Math.abs(val))*100;
+    statsHtml+='<div class="tv-stat"><div class="tv-stat-head"><div class="tv-stat-dot" style="background:'+color+';box-shadow:0 0 8px '+color+';"></div><div class="tv-stat-name">'+m.name+'</div></div><div class="tv-stat-val" style="color:'+color+';">'+m.fmt(val)+'</div><div class="tv-stat-note">'+m.note(val)+'</div><div class="tv-stat-bar"><div class="tv-stat-fill" style="width:'+Math.min(pct,100).toFixed(1)+'%;background:'+color+';"></div></div></div>';
+  }
+
+  $('verdictSection').innerHTML=
+    '<div class="tv-verdict '+vd.css+' tv-animate">'+
+      '<div class="tv-verdict-head"><div class="tv-verdict-ico">'+vd.emoji+'</div>'+
+      '<div><div class="tv-verdict-title">'+vd.title+'</div><div class="tv-verdict-sub">'+vd.sub+'</div></div></div>'+
+      '<div class="tv-verdict-explain">'+vd.explain+'</div>'+
+      '<div class="tv-score-section"><div class="tv-score-label">ONNX Model Score</div>'+
+      '<div class="tv-gauge-wrap"><div class="tv-gauge-col">'+
+      '<div class="tv-gauge-bar"><div class="tv-gauge-fill" id="gFill" style="width:0%;"></div>'+
+      '<div class="tv-gauge-marker" id="gMark" style="left:0%;"></div></div>'+
+      '<div class="tv-gauge-labels"><span>Risky &lt;0.5</span><span>Fair 0.5-1.5</span><span>Momentum &ge;1.5</span></div>'+
+      '</div><div class="tv-score-value">'+score.toFixed(3)+'</div></div></div>'+
+      '<div class="tv-stats">'+statsHtml+'</div>'+
+      '<div class="tv-advice '+vd.css+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg> '+vd.advice+'</div>'+
+      '<div class="tv-proof">'+
+      '<span class="tv-proof-label">On-chain proof &middot; Block '+blockNum+'</span>'+
+      '<a class="tv-proof-link" href="'+explorerUrl+'" target="_blank" rel="noopener">'+txHash.slice(0,10)+'...'+txHash.slice(-6)+' &#8599;</a>'+
+      '</div></div>';
+
+  $('verdictSection').style.display='block';
+  setTimeout(function(){$('gFill').style.width=scorePct+'%';$('gMark').style.left=scorePct+'%';},80);
+
+  var url='https://api.dexpaprika.com/networks/'+network+'/tokens/'+tokenAddress;
+  $('traceUrl').textContent=url;
+  $('traceHttpStatus').innerHTML='<span style="color:var(--success);font-weight:600;">&#10003; 200 OK</span> &nbsp;&middot;&nbsp; <a href="'+explorerUrl+'" target="_blank" style="color:var(--accent-2);text-decoration:none;">View settlement tx &#8599;</a>';
+  var jqL=['liquidity_usd / 1000','volume_usd / 1000','price_change &times; 100','buys + sells'];
+  var jqHtml='';for(var j=0;j<f.length;j++){jqHtml+='<div class="tv-jq-row"><span class="tv-jq-query">'+jqL[j]+'</span><span style="color:var(--text-3);">&rarr;</span><span class="tv-jq-val">'+f[j].toLocaleString()+'</span></div>';}
+  $('traceJQ').innerHTML=jqHtml;
+  $('traceModel').textContent=TEST_ONNX_MODEL_ID;
+  var thr=score<0.5?'score &lt; 0.5 &rarr; RISKY':score<1.5?'0.5 &le; score &lt; 1.5 &rarr; FAIR':'score &ge; 1.5 &rarr; MOMENTUM';
+  $('traceCalc').innerHTML='['+f[0]+', '+f[1]+', '+f[2]+', '+f[3]+'] &middot; weights [4e-6, 4e-6, 1e-3, 0]<div style="font-size:16px;font-weight:700;margin-top:8px;color:'+vc+';">&equals; '+score.toFixed(4)+'&nbsp;&nbsp;<span style="font-size:12px;color:var(--text-3);font-weight:400;">('+thr+')</span></div>';
+  $('pipelineTrace').style.display='block';
+  $('verdictSection').scrollIntoView({behavior:'smooth',block:'start'});
+}
+</script>
+</body>
+</html>

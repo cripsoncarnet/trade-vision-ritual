@@ -1,0 +1,20 @@
+# foundry.toml
+[profile.default]
+src = "contracts"
+out = "out"
+test = "test"
+script = "script"
+libs = ["lib"]
+evm_version = "shanghai"
+solc_version = "0.8.24"
+via_ir = true
+optimizer = true
+optimizer_runs = 200
+
+[rpc_endpoints]
+ritual = "${RITUAL_RPC_URL}"
+
+[etherscan]
+# Ritual's custom verification service -- NOT Sourcify (chain 1979 isn't registered).
+# Use: --verifier custom --verifier-url "$RITUAL_VERIFIER_URL" --verifier-api-key unused
+ritual = { key = "unused", url = "${RITUAL_VERIFIER_URL}" }
