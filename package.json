@@ -1,11 +1,10 @@
 {
-  "name": "dex-deal-checker",
+  "name": "trade-vision-ritual",
   "version": "1.0.0",
   "type": "module",
   "description": "Trade Vision — HTTP + JQ + ONNX on Ritual Chain",
   "scripts": {
-    "fund-wallet": "node scripts/fund-wallet.mjs",
-    "check-token": "node scripts/check-token.mjs"
+    "fund-wallet": "node scripts/fund-wallet.mjs"
   },
   "dependencies": {
     "dotenv": "^17.4.2"
